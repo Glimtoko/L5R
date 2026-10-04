@@ -1,7 +1,5 @@
 from pathlib import Path
 import sqlite3
-import reportlab
-
 
 def find_card(name: str) -> tuple[str, dict] | None:
     """Return the first matching (table name, card details), or None.
