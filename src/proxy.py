@@ -7,17 +7,18 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from db_tools import find_card
-from user_tools import read_card_counts
+from user_tools import read_card_counts, store_text_file_as_list
 
 
-def load_cards(file_path: str | Path) -> dict[str, dict] | None:
+def load_cards(file_contents: list) -> dict[str, dict] | None:
     """Read card counts and look up every card in the database.
 
     Map each card name to its count and the (table name, details) returned by
     find_card. Print an error for each missing card and return None if any are
     missing. File-reading and card-count validation errors propagate normally.
     """
-    card_counts = read_card_counts(file_path)
+    # file_contents = store_text_file_as_list(file_path)
+    card_counts = read_card_counts(file_contents)
     cards: dict[str, dict] = {}
     has_errors = False
 
@@ -33,17 +34,17 @@ def load_cards(file_path: str | Path) -> dict[str, dict] | None:
     return None if has_errors else cards
 
 
-def create_proxy_pdf(file_path: str | Path) -> Path | None:
+def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap: int = 1) -> Path | None:
     """Create an A4 PDF beside the input file and return its path.
 
-    Use nine 63 x 88 mm slots per page with 1 mm gaps between slots,
+    Use nine 63 x 88 mm slots per page with <custom_gap> mm gaps between slots,
     preserving image aspect ratios.
     Database image paths are relative to the project root (the parent of src).
     Use the first available image when a card has multiple editions. Report
     missing/unreadable images and return None before creating a PDF if any
     card cannot be printed. An empty card list also returns None.
     """
-    cards = load_cards(file_path)
+    # cards = load_cards(file_path)
     if cards is None:
         return None
     if not cards:
@@ -67,15 +68,14 @@ def create_proxy_pdf(file_path: str | Path) -> Path | None:
             print(f"Error: no usable image for card {name!r}: {error}")
             has_errors = True
             continue
-        images.append((image, card["count"]))
+        images.append((name, image, card["count"]))
 
     if has_errors:
         return None
 
-    output_path = Path(file_path).with_suffix(".pdf")
     page_width, page_height = A4
     card_width, card_height = 63 * mm, 88 * mm
-    gap = 1 * mm
+    gap = custom_gap * mm
     columns = int((page_width + gap) // (card_width + gap))
     rows = int((page_height + gap) // (card_height + gap))
     cards_per_page = columns * rows
@@ -84,10 +84,29 @@ def create_proxy_pdf(file_path: str | Path) -> Path | None:
     left = (page_width - grid_width) / 2
     top = (page_height + grid_height) / 2
     pdf = canvas.Canvas(str(output_path), pagesize=A4, pageCompression=1)
-    pdf.setTitle(Path(file_path).stem + " card proxies")
+    pdf.setTitle(Path(str(output_path)).stem + " card proxies")
 
+    total_copies = sum(count for _, _, count in images)
+    total_pages = (total_copies + cards_per_page - 1) // cards_per_page
+    print(
+        f"Creating PDF: {total_copies} card copies across {total_pages} "
+        f"{'page' if total_pages == 1 else 'pages'}.",
+        flush=True,
+    )
     card_index = 0
-    for image, count in images:
+    for card_number, (name, image, count) in enumerate(images, start=1):
+        first_page = card_index // cards_per_page + 1
+        last_page = (card_index + count - 1) // cards_per_page + 1
+        page_label = (
+            f"page {first_page}"
+            if first_page == last_page
+            else f"pages {first_page}-{last_page}"
+        )
+        print(
+            f"[{card_number}/{len(images)}] {name}: "
+            f"{count} {'copy' if count == 1 else 'copies'} ({page_label})",
+            flush=True,
+        )
         for _ in range(count):
             if card_index and card_index % cards_per_page == 0:
                 pdf.showPage()
@@ -104,11 +123,22 @@ def create_proxy_pdf(file_path: str | Path) -> Path | None:
                 mask="auto",
             )
             card_index += 1
-    pdf.save()
-    return output_path
+    try:
+        pdf.save()
+        print(f"Saved PDF: {output_path}", flush=True)
+        return output_path
+    except PermissionError as e:
+        print(f"Error saving PDF: {e}", flush=True)
+        print("Please close the PDF if it is open in another program and try again.", flush=True)
+        return None
 
 
 if __name__ == "__main__":
     test_file = Path(__file__).resolve().parent.parent / "testing" / "mantis.txt"
-    result = create_proxy_pdf(test_file)
+    output_path = Path(__file__).resolve().parent.parent / "testing" / "mantis.pdf"
+
+    file_contents = store_text_file_as_list(test_file)
+
+    cards = load_cards(file_contents)
+    result = create_proxy_pdf(cards, output_path)
     print(result)
