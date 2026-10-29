@@ -8,9 +8,14 @@ from reportlab.pdfgen import canvas
 
 from db_tools import find_card
 from user_tools import read_card_counts, store_text_file_as_list
+from validate import validate_deck
 
 
-def load_cards(file_contents: list) -> dict[str, dict] | None:
+def load_cards(
+        file_contents: list,
+        database: str = "cards.sqlite3",
+        text_ctrl_object=None
+    ) -> dict[str, dict] | None:
     """Read card counts and look up every card in the database.
 
     Map each card name to its count and the (table name, details) returned by
@@ -23,9 +28,12 @@ def load_cards(file_contents: list) -> dict[str, dict] | None:
     has_errors = False
 
     for name, count in card_counts.items():
-        card_data = find_card(name)
+        card_data = find_card(name, database=database)
         if card_data is None:
-            print(f"Error: card {name!r} was not found in the database.")
+            if text_ctrl_object is not None:
+                text_ctrl_object.WriteText(f"Error: card {name!r} was not found in the database.\n")
+            else:
+                print(f"Error: card {name!r} was not found in the database.")
             has_errors = True
             continue
 
@@ -34,7 +42,12 @@ def load_cards(file_contents: list) -> dict[str, dict] | None:
     return None if has_errors else cards
 
 
-def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap: int = 1) -> Path | None:
+def create_proxy_pdf(
+        cards: dict[str, dict],
+        output_path: str | Path,
+        custom_gap: int = 1,
+        text_ctrl_object=None
+    ) -> Path | None:
     """Create an A4 PDF beside the input file and return its path.
 
     Use nine 63 x 88 mm slots per page with <custom_gap> mm gaps between slots,
@@ -48,7 +61,10 @@ def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap
     if cards is None:
         return None
     if not cards:
-        print("Error: the card list is empty.")
+        if text_ctrl_object is not None:
+            text_ctrl_object.WriteText("Error: the card list is empty.\n")
+        else:
+            print("Error: the card list is empty.")
         return None
 
     project_root = Path(__file__).resolve().parent.parent
@@ -88,11 +104,17 @@ def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap
 
     total_copies = sum(count for _, _, count in images)
     total_pages = (total_copies + cards_per_page - 1) // cards_per_page
-    print(
-        f"Creating PDF: {total_copies} card copies across {total_pages} "
-        f"{'page' if total_pages == 1 else 'pages'}.",
-        flush=True,
-    )
+    if text_ctrl_object is not None:
+        text_ctrl_object.WriteText(
+            f"Creating PDF: {total_copies} card copies across {total_pages} "
+            f"{'page' if total_pages == 1 else 'pages'}.\n"
+        )
+    else:
+        print(
+            f"Creating PDF: {total_copies} card copies across {total_pages} "
+            f"{'page' if total_pages == 1 else 'pages'}.",
+            flush=True,
+        )
     card_index = 0
     for card_number, (name, image, count) in enumerate(images, start=1):
         first_page = card_index // cards_per_page + 1
@@ -102,11 +124,17 @@ def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap
             if first_page == last_page
             else f"pages {first_page}-{last_page}"
         )
-        print(
-            f"[{card_number}/{len(images)}] {name}: "
-            f"{count} {'copy' if count == 1 else 'copies'} ({page_label})",
-            flush=True,
-        )
+        if text_ctrl_object is not None:
+            text_ctrl_object.WriteText(
+                f"[{card_number}/{len(images)}] {name}: "
+                f"{count} {'copy' if count == 1 else 'copies'} ({page_label})\n"
+            )
+        else:
+            print(
+                f"[{card_number}/{len(images)}] {name}: "
+                f"{count} {'copy' if count == 1 else 'copies'} ({page_label})",
+                flush=True,
+            )
         for _ in range(count):
             if card_index and card_index % cards_per_page == 0:
                 pdf.showPage()
@@ -125,7 +153,10 @@ def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap
             card_index += 1
     try:
         pdf.save()
-        print(f"Saved PDF: {output_path}", flush=True)
+        if text_ctrl_object is not None:
+            text_ctrl_object.WriteText(f"Saved PDF: {output_path}\n")
+        else:
+            print(f"Saved PDF: {output_path}", flush=True)
         return output_path
     except PermissionError as e:
         print(f"Error saving PDF: {e}", flush=True)
@@ -134,11 +165,18 @@ def create_proxy_pdf(cards: dict[str, dict], output_path: str | Path, custom_gap
 
 
 if __name__ == "__main__":
-    test_file = Path(__file__).resolve().parent.parent / "testing" / "mantis.txt"
-    output_path = Path(__file__).resolve().parent.parent / "testing" / "mantis.pdf"
+    test_file = Path(__file__).resolve().parent.parent / "testing" / "dragon.txt"
+    output_path = Path(__file__).resolve().parent.parent / "testing" / "dragon.pdf"
 
     file_contents = store_text_file_as_list(test_file)
+    ignore_errors = False
 
-    cards = load_cards(file_contents)
-    result = create_proxy_pdf(cards, output_path)
-    print(result)
+    cards = load_cards(file_contents, database="cards.sqlite3")
+    validation_errors = validate_deck(cards)
+    if validation_errors and not ignore_errors:
+        print("Validation errors found:")
+        for error in validation_errors:
+            print(f"  - {error}")
+    else:
+        result = create_proxy_pdf(cards, output_path)
+        print(result)

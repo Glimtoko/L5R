@@ -7,12 +7,17 @@ import sqlite3
 
 print(sys.version)
 
-database = ET.parse(Path(__file__).with_name("database.xml"))
+input_name = "three_dynasties.xml"
+legality = "three_dynasties"
+output = "three_dynasties.sqlite3"
+
+
+database = ET.parse(Path(__file__).with_name(input_name))
 
 cards = [
     card
     for card in database.iter("card")
-    if any(legal.text == "shattered_empire" for legal in card.findall("legal"))
+    if any(legal.text == legality for legal in card.findall("legal"))
 ]
 
 card_types = sorted({card.attrib["type"] for card in cards})
@@ -46,7 +51,7 @@ json_elements = {
     for card_type, elements in card_contents.items()
 }
 
-sqlite_path = Path(__file__).with_name("cards.sqlite3")
+sqlite_path = Path(__file__).with_name(output)
 with sqlite3.connect(sqlite_path) as connection:
     for card_type, elements in card_contents.items():
         table = quote_identifier(card_type)

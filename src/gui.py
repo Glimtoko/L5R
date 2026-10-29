@@ -2,6 +2,7 @@ import wx
 import wx.richtext
 
 from proxy import create_proxy_pdf, load_cards
+from validate import validate_deck
 
 class L5RProxy(wx.Frame):
     def __init__( self, parent ):
@@ -9,7 +10,7 @@ class L5RProxy(wx.Frame):
             self,
             parent,
             id = wx.ID_ANY,
-            title = wx.EmptyString,
+            title = "L5R Proxy Generator",
             pos = wx.DefaultPosition,
             size = wx.Size( 815,576 ),
             style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL
@@ -42,6 +43,29 @@ class L5RProxy(wx.Frame):
         )
         bSizer1.Add( self.m_richText1, 1, wx.EXPAND |wx.ALL, 5 )
 
+        self.m_radioBox1 = wx.RadioBox(
+            self,
+            wx.ID_ANY,
+            u"Database",
+            wx.DefaultPosition,
+            wx.DefaultSize,
+            [u"three_dynasties.sqlite3", u"cards.sqlite3"],
+            1,
+            wx.RA_SPECIFY_ROWS
+        )
+        bSizer1.Add( self.m_radioBox1, 0, wx.ALL, 5 )
+
+        self.m_ignoreErrorsCheckBox = wx.CheckBox(
+            self,
+            wx.ID_ANY,
+            u"Ignore Validation Errors",
+            wx.DefaultPosition,
+            wx.DefaultSize,
+            0
+        )
+        # self.m_ignoreErrorsCheckBox.SetValue(True)
+        bSizer1.Add( self.m_ignoreErrorsCheckBox, 0, wx.ALL, 5 )
+
         self.m_button1 = wx.Button(
             self,
             wx.ID_ANY,
@@ -53,6 +77,15 @@ class L5RProxy(wx.Frame):
         self.m_button1.Bind(wx.EVT_BUTTON, self.on_button_click)
         bSizer1.Add( self.m_button1, 0, wx.ALL, 5 )
 
+        self.m_messages = wx.TextCtrl(
+            self,
+            wx.ID_ANY,
+            wx.EmptyString,
+            wx.DefaultPosition,
+            wx.DefaultSize,
+            wx.TE_MULTILINE|wx.TE_READONLY
+        )
+        bSizer1.Add( self.m_messages, 1, wx.EXPAND |wx.ALL, 5 )
 
         self.SetSizer( bSizer1 )
         self.Layout()
@@ -67,17 +100,25 @@ class L5RProxy(wx.Frame):
                 content = file.read()
                 self.m_richText1.WriteText(content)
         except Exception as e:
-            self.m_richText1.WriteText(f"Error reading file: {e}")
+            self.m_messages.WriteText(f"Error reading file: {e}")
 
     def on_button_click(self, event):
+        self.m_messages.Clear()
         text = self.m_richText1.GetValue()
-        cards = load_cards(text.splitlines())
+        cards = load_cards(text.splitlines(), database=self.m_radioBox1.GetStringSelection(), text_ctrl_object=self.m_messages)
         output_path = self.m_filePicker1.GetPath()
         if output_path == "":
             output_path = "output.pdf"
         else:
             output_path = output_path.rsplit('.', 1)[0] + ".pdf"  # Change extension to .pdf
-        result = create_proxy_pdf(cards, output_path)
+
+        ignore_errors = self.m_ignoreErrorsCheckBox.GetValue()
+        validation_errors = validate_deck(cards, text_ctrl_object=self.m_messages)
+        if validation_errors and not ignore_errors:
+            for error in validation_errors:
+                self.m_messages.WriteText(f"Validation error: {error}\n")
+        else:
+            result = create_proxy_pdf(cards, output_path, text_ctrl_object=self.m_messages)
 
     def __del__( self ):
         pass

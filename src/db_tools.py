@@ -1,12 +1,12 @@
 from pathlib import Path
 import sqlite3
 
-def find_card(name: str) -> tuple[str, dict] | None:
+def find_card(name: str, database="cards.sqlite3") -> tuple[str, dict] | None:
     """Return the first matching (table name, card details), or None.
 
     Card names are matched exactly. Details map column names to stored values.
     """
-    database_path = Path(__file__).resolve().parent.parent / "raw_data" / "cards.sqlite3"
+    database_path = Path(__file__).resolve().parent.parent / "raw_data" / database
     connection = sqlite3.connect(database_path.as_uri() + "?mode=ro", uri=True)
     try:
         connection.row_factory = sqlite3.Row
