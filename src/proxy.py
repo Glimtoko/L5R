@@ -21,14 +21,19 @@ def load_cards(
     Map each card name to its count and the (table name, details) returned by
     find_card. Print an error for each missing card and return None if any are
     missing. File-reading and card-count validation errors propagate normally.
+
+    :param file_contents: List of strings representing the contents of a text file.
+    :param database: The SQLite database file name (default: "cards.sqlite3").
+    :param text_ctrl_object: Optional wx.TextCtrl object for logging messages.
+    :return: A dictionary mapping card names to their counts and details, or None if any cards are missing.
     """
-    # file_contents = store_text_file_as_list(file_path)
+
     card_counts = read_card_counts(file_contents)
     cards: dict[str, dict] = {}
     has_errors = False
 
     for name, count in card_counts.items():
-        card_data = find_card(name, database=database)
+        card_data = find_card(name, database=database, text_ctrl_object=text_ctrl_object)
         if card_data is None:
             if text_ctrl_object is not None:
                 text_ctrl_object.WriteText(f"Error: card {name!r} was not found in the database.\n")
@@ -56,6 +61,12 @@ def create_proxy_pdf(
     Use the first available image when a card has multiple editions. Report
     missing/unreadable images and return None before creating a PDF if any
     card cannot be printed. An empty card list also returns None.
+
+    :param cards: A dictionary mapping card names to their counts and details.
+    :param output_path: The path where the PDF will be saved.
+    :param custom_gap: The gap between cards in millimeters (default: 1).
+    :param text_ctrl_object: Optional wx.TextCtrl object for logging messages.
+    :return: The path to the created PDF, or None if there were errors.
     """
     # cards = load_cards(file_path)
     if cards is None:
@@ -81,7 +92,10 @@ def create_proxy_pdf(
             image = ImageReader(str(image_path))
             image.getRGBData()  # Validate the image before opening the output.
         except (ValueError, TypeError, KeyError, StopIteration, OSError) as error:
-            print(f"Error: no usable image for card {name!r}: {error}")
+            if text_ctrl_object is not None:
+                text_ctrl_object.WriteText(f"Error: no usable image for card {name!r}: {error}\n")
+            else:
+                print(f"Error: no usable image for card {name!r}: {error}")
             has_errors = True
             continue
         images.append((name, image, card["count"]))

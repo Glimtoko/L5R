@@ -9,7 +9,8 @@
 3 Twilight Mountain Mine
 3 Zokujin Burrows
 1 The Daimyo's Gift - exp2
-3 Temples of Gisei Toshi
+2 Temples of Gisei Toshi
+1 Shrine to Daikoku
 2 Forward Camp
 
 3 Heichi Gengyo

@@ -6,6 +6,9 @@ from validate import validate_deck
 
 class L5RProxy(wx.Frame):
     def __init__( self, parent ):
+        """Create a new L5RProxy frame with a file picker, rich text control, radio box for database selection, and
+        buttons for creating proxies."""
+
         wx.Frame.__init__(
             self,
             parent,
@@ -93,6 +96,9 @@ class L5RProxy(wx.Frame):
         self.Centre( wx.BOTH )
 
     def on_file_changed(self, event):
+        """Handle the file picker change event by reading the selected file and displaying its
+        contents in the rich text control."""
+
         file_path = self.m_filePicker1.GetPath()
         self.m_richText1.Clear()
         try:
@@ -103,22 +109,27 @@ class L5RProxy(wx.Frame):
             self.m_messages.WriteText(f"Error reading file: {e}")
 
     def on_button_click(self, event):
+        """Handle the button click event by loading cards from the rich text control, validating them, and creating a
+        proxy PDF if there are no validation errors or if the user has chosen to ignore them."""
         self.m_messages.Clear()
         text = self.m_richText1.GetValue()
         cards = load_cards(text.splitlines(), database=self.m_radioBox1.GetStringSelection(), text_ctrl_object=self.m_messages)
-        output_path = self.m_filePicker1.GetPath()
-        if output_path == "":
-            output_path = "output.pdf"
-        else:
-            output_path = output_path.rsplit('.', 1)[0] + ".pdf"  # Change extension to .pdf
+        if cards is not None:
+            output_path = self.m_filePicker1.GetPath()
+            if output_path == "":
+                output_path = "output.pdf"
+            else:
+                output_path = output_path.rsplit('.', 1)[0] + ".pdf"  # Change extension to .pdf
 
-        ignore_errors = self.m_ignoreErrorsCheckBox.GetValue()
-        validation_errors = validate_deck(cards, text_ctrl_object=self.m_messages)
-        if validation_errors and not ignore_errors:
-            for error in validation_errors:
-                self.m_messages.WriteText(f"Validation error: {error}\n")
+            ignore_errors = self.m_ignoreErrorsCheckBox.GetValue()
+            validation_errors = validate_deck(cards, text_ctrl_object=self.m_messages)
+            if validation_errors and not ignore_errors:
+                for error in validation_errors:
+                    self.m_messages.WriteText(f"Validation error: {error}\n")
+            else:
+                result = create_proxy_pdf(cards, output_path, text_ctrl_object=self.m_messages)
         else:
-            result = create_proxy_pdf(cards, output_path, text_ctrl_object=self.m_messages)
+            self.m_messages.WriteText("Error: Invalid card names in input text.\n")
 
     def __del__( self ):
         pass

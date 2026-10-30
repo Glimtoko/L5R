@@ -5,12 +5,13 @@
 1 Annexation - exp
 1 Hototogitsu - exp
 3 Productive Mine
-3 Famous Bazaar
+2 Famous Bazaar
 3 Otokoshi District
 3 Sheltered Port
 3 Trading Hub
 1 Second City Outpost
 1 The Daimyo's Gift - exp2
+1 Shrine to Daikoku
 
 2 Tsuruchi Danjuro
 3 Tsuruchi Jirou
