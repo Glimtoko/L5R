@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import sys
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -9,11 +10,11 @@ from reportlab.pdfgen import canvas
 from db_tools import find_card
 from user_tools import read_card_counts, store_text_file_as_list
 from validate import validate_deck
+import config
 
 
 def load_cards(
         file_contents: list,
-        database: str = "cards.sqlite3",
         text_ctrl_object=None
     ) -> dict[str, dict] | None:
     """Read card counts and look up every card in the database.
@@ -23,7 +24,6 @@ def load_cards(
     missing. File-reading and card-count validation errors propagate normally.
 
     :param file_contents: List of strings representing the contents of a text file.
-    :param database: The SQLite database file name (default: "cards.sqlite3").
     :param text_ctrl_object: Optional wx.TextCtrl object for logging messages.
     :return: A dictionary mapping card names to their counts and details, or None if any cards are missing.
     """
@@ -33,7 +33,7 @@ def load_cards(
     has_errors = False
 
     for name, count in card_counts.items():
-        card_data = find_card(name, database=database, text_ctrl_object=text_ctrl_object)
+        card_data = find_card(name, text_ctrl_object=text_ctrl_object)
         if card_data is None:
             if text_ctrl_object is not None:
                 text_ctrl_object.WriteText(f"Error: card {name!r} was not found in the database.\n")
@@ -78,7 +78,10 @@ def create_proxy_pdf(
             print("Error: the card list is empty.")
         return None
 
-    project_root = Path(__file__).resolve().parent.parent
+    try:
+        project_root = Path(sys._MEIPASS)
+    except AttributeError:
+        project_root = Path(__file__).resolve().parent.parent
     images = []
     has_errors = False
     for name, card in cards.items():
@@ -185,7 +188,7 @@ if __name__ == "__main__":
     file_contents = store_text_file_as_list(test_file)
     ignore_errors = False
 
-    cards = load_cards(file_contents, database="cards.sqlite3")
+    cards = load_cards(file_contents, text_ctrl_object=None)
     validation_errors = validate_deck(cards)
     if validation_errors and not ignore_errors:
         print("Validation errors found:")

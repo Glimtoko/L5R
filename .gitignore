@@ -1,2 +1,4 @@
 /.venv
 *.pdf
+dist/
+build/

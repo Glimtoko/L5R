@@ -46,18 +46,6 @@ class L5RProxy(wx.Frame):
         )
         bSizer1.Add( self.m_richText1, 1, wx.EXPAND |wx.ALL, 5 )
 
-        self.m_radioBox1 = wx.RadioBox(
-            self,
-            wx.ID_ANY,
-            u"Database",
-            wx.DefaultPosition,
-            wx.DefaultSize,
-            [u"three_dynasties.sqlite3", u"cards.sqlite3"],
-            1,
-            wx.RA_SPECIFY_ROWS
-        )
-        bSizer1.Add( self.m_radioBox1, 0, wx.ALL, 5 )
-
         self.m_ignoreErrorsCheckBox = wx.CheckBox(
             self,
             wx.ID_ANY,
@@ -113,7 +101,7 @@ class L5RProxy(wx.Frame):
         proxy PDF if there are no validation errors or if the user has chosen to ignore them."""
         self.m_messages.Clear()
         text = self.m_richText1.GetValue()
-        cards = load_cards(text.splitlines(), database=self.m_radioBox1.GetStringSelection(), text_ctrl_object=self.m_messages)
+        cards = load_cards(text.splitlines(), text_ctrl_object=self.m_messages)
         if cards is not None:
             output_path = self.m_filePicker1.GetPath()
             if output_path == "":
@@ -143,4 +131,11 @@ def do_gui():
 
 
 if __name__ == "__main__":
+    try:
+        import pyi_splash
+    except ImportError:
+        pass
+    else:
+        pyi_splash.close()
+
     do_gui()
