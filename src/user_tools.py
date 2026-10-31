@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+import utils
+
 def store_text_file_as_list(file_path: str | Path) -> list[str]:
     """Read a UTF-8 text file and return a list of non-empty lines.
 
@@ -15,7 +17,7 @@ def store_text_file_as_list(file_path: str | Path) -> list[str]:
     return lines
 
 
-def read_card_counts(text: list[str]) -> dict[str, int]:
+def read_card_counts(text: list[str], text_ctrl_object=None) -> dict[str, int] | None:
     """Read a UTF-8 card list and return card names mapped to total counts.
 
     Lines use ``3 Card Name`` format, with whitespace after the count, or just
@@ -24,6 +26,7 @@ def read_card_counts(text: list[str]) -> dict[str, int]:
     for malformed lines, nonpositive counts, or totals greater than three.
     """
     card_counts: dict[str, int] = {}
+    valid = True
     for line_number, line in enumerate(text, start=1):
         line = line.strip()
         if not line:
@@ -34,22 +37,21 @@ def read_card_counts(text: list[str]) -> dict[str, int]:
             count = int(match.group(1))
             name = match.group(2).strip()
         elif re.fullmatch(r"[+-]?[0-9]+", line):
-            raise ValueError(
-                f"Line {line_number}: missing card name after count."
-            )
+            valid = False
+            utils.message(text_ctrl_object,f"Line {line_number}: missing card name after count.")
+            utils.message(text_ctrl_object,f"Line was: {line}")
         else:
             count = 1
             name = line
 
         if count < 1:
-            raise ValueError(f"Line {line_number}: count must be positive.")
+            valid = False
+            utils.message(text_ctrl_object,f"Line {line_number}: count must be positive.")
+            utils.message(text_ctrl_object,f"Line was: {line}")
 
         total = card_counts.get(name, 0) + count
         card_counts[name] = total
 
-    return card_counts
-
-if __name__ == "__main__":
-    test_file = Path(__file__).resolve().parent.parent / "testing" / "mantis.txt"
-    result = read_card_counts(test_file)
-    print(result)
+    if valid:
+        return card_counts
+    return None

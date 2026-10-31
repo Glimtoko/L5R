@@ -5,6 +5,7 @@ import sqlite3
 import sys
 
 import config
+import utils
 
 def find_card(name: str, text_ctrl_object=None) -> tuple[str, dict] | None:
     """Return the first matching (table name, card details), or None. Uses a fuzzy match on the card name, so "Minor Illness"
@@ -43,24 +44,17 @@ def find_card(name: str, text_ctrl_object=None) -> tuple[str, dict] | None:
             )
             all_cards = test.fetchall()
             if len(all_cards) > 1:
-                if text_ctrl_object is not None:
-                    text_ctrl_object.WriteText(f"Error: multiple cards found for '{name}' in table '{table_name}':\n")
-                    for card in all_cards:
-                        text_ctrl_object.WriteText(f"  - {card['name']}\n")
-                else:
-                    print(f"Error: multiple cards found for '{name}' in table '{table_name}':")
-                    for card in all_cards:
-                        print(f"  - {card['name']}")
+                utils.message(
+                    text_ctrl_object,
+                    f"Error: multiple cards found for '{name}' in table '{table_name}':"
+                )
+                for card in all_cards:
+                    utils.message(text_ctrl_object, f"  - {card['name']}")
                 return None
+
             elif len(all_cards) == 1:
                 card = all_cards[0]
                 return table_name, dict(card)
         return None
     finally:
         connection.close()
-
-
-if __name__ == "__main__":
-    test_card = "Minor Illness"
-    result = find_card(test_card)
-    print(result)

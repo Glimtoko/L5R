@@ -10,7 +10,6 @@ from reportlab.pdfgen import canvas
 from db_tools import find_card
 from user_tools import read_card_counts, store_text_file_as_list
 from validate import validate_deck
-import config
 
 
 def load_cards(
@@ -28,7 +27,10 @@ def load_cards(
     :return: A dictionary mapping card names to their counts and details, or None if any cards are missing.
     """
 
-    card_counts = read_card_counts(file_contents)
+    card_counts = read_card_counts(file_contents, text_ctrl_object)
+    if card_counts is None:
+        return None
+
     cards: dict[str, dict] = {}
     has_errors = False
 
@@ -179,18 +181,3 @@ def create_proxy_pdf(
         print(f"Error saving PDF: {e}", flush=True)
         print("Please close the PDF if it is open in another program and try again.", flush=True)
         return None
-
-
-if __name__ == "__main__":
-    test_file = Path(__file__).resolve().parent.parent / "testing" / "dragon.txt"
-    output_path = Path(__file__).resolve().parent.parent / "testing" / "dragon.pdf"
-
-    file_contents = store_text_file_as_list(test_file)
-    ignore_errors = False
-
-    cards = load_cards(file_contents, text_ctrl_object=None)
-    validation_errors = validate_deck(cards)
-    valid = validate_deck(cards, text_ctrl_object=None)
-    if valid or ignore_errors:
-        result = create_proxy_pdf(cards, output_path)
-        print(result)

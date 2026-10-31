@@ -114,7 +114,7 @@ class L5RProxy(wx.Frame):
             if valid or ignore_errors:
                 result = create_proxy_pdf(cards, output_path, text_ctrl_object=self.m_messages)
         else:
-            self.m_messages.WriteText("Error: Invalid card names in input text.\n")
+            self.m_messages.WriteText("Error: Invalid input text. Check error messages above.\n")
 
     def __del__( self ):
         pass
@@ -129,7 +129,7 @@ def do_gui():
 
 if __name__ == "__main__":
     try:
-        import pyi_splash
+        import pyi_splash # pyright: ignore[reportMissingModuleSource]
     except ImportError:
         pass
     else:
