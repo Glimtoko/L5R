@@ -1,3 +1,5 @@
+import utils
+
 dynasty_card_types = {
     'holding', 'personality', 'event'
 }
@@ -15,7 +17,7 @@ def validate_deck(cards: dict[str, dict], text_ctrl_object=None) -> list[str]:
 
     Ensures that the deck contains at least 40 dynasty cards, at least 40 fate cards, and at least 1 special card.
     """
-    errors = []
+    valid = True
 
     dynasty_count = sum(
         details['count'] for name, details in cards.items()
@@ -31,16 +33,31 @@ def validate_deck(cards: dict[str, dict], text_ctrl_object=None) -> list[str]:
         or name == "Bamboo Harvesters"  # Include Bamboo Harvesters in the special count
     )
 
-    if text_ctrl_object is not None:
-        text_ctrl_object.WriteText(f"Dynasty count: {dynasty_count}, Fate count: {fate_count}, Special count: {special_count}\n")
-    else:
-        print(f"Dynasty count: {dynasty_count}, Fate count: {fate_count}, Special count: {special_count}")
+    # Other checks
+    for name, details in cards.items():
+        count = details['count']
+        unique = details['data'][1].get('unique', "false")
+        unique = unique.lower() == "true"  # Convert to boolean
+        if unique and count > 1:
+            utils.message(text_ctrl_object, f"Deck has {count} copies of unique card {name}.")
+            valid = False
+        elif not unique and count > 3:
+            utils.message(text_ctrl_object, f"Deck has {count} copies of non-unique card {name}.")
+            valid = False
 
     if dynasty_count < 40:
-        errors.append(f"Deck has {dynasty_count} dynasty cards; minimum is 40.")
+        utils.message(text_ctrl_object, f"Deck has {dynasty_count} dynasty cards; minimum is 40.")
+        valid = False
     if fate_count < 40:
-        errors.append(f"Deck has {fate_count} fate cards; minimum is 40.")
+        utils.message(text_ctrl_object, f"Deck has {fate_count} fate cards; minimum is 40.")
+        valid = False
     if special_count < 1:
-        errors.append(f"Deck has {special_count} special cards; minimum is 1.")
+        utils.message(text_ctrl_object, f"Deck has {special_count} special cards; minimum is 1.")
+        valid = False
 
-    return errors
+    utils.message(
+        text_ctrl_object,
+        f"Dynasty count: {dynasty_count}, Fate count: {fate_count}, Special count: {special_count}"
+    )
+
+    return valid

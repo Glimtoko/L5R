@@ -23,8 +23,10 @@ splash = Splash(
     'l5r_splash.png',
     binaries=a.binaries,
     datas=a.datas,
-    text_pos=None,
+    text_default="v0.1 (Three Dynasties)",
+    text_pos=(10,410),
     text_size=12,
+    text_color="#ffffff",
     minify_script=True,
     always_on_top=False,
 )

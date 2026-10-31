@@ -110,11 +110,8 @@ class L5RProxy(wx.Frame):
                 output_path = output_path.rsplit('.', 1)[0] + ".pdf"  # Change extension to .pdf
 
             ignore_errors = self.m_ignoreErrorsCheckBox.GetValue()
-            validation_errors = validate_deck(cards, text_ctrl_object=self.m_messages)
-            if validation_errors and not ignore_errors:
-                for error in validation_errors:
-                    self.m_messages.WriteText(f"Validation error: {error}\n")
-            else:
+            valid = validate_deck(cards, text_ctrl_object=self.m_messages)
+            if valid or ignore_errors:
                 result = create_proxy_pdf(cards, output_path, text_ctrl_object=self.m_messages)
         else:
             self.m_messages.WriteText("Error: Invalid card names in input text.\n")

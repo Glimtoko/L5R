@@ -190,10 +190,7 @@ if __name__ == "__main__":
 
     cards = load_cards(file_contents, text_ctrl_object=None)
     validation_errors = validate_deck(cards)
-    if validation_errors and not ignore_errors:
-        print("Validation errors found:")
-        for error in validation_errors:
-            print(f"  - {error}")
-    else:
+    valid = validate_deck(cards, text_ctrl_object=None)
+    if valid or ignore_errors:
         result = create_proxy_pdf(cards, output_path)
         print(result)

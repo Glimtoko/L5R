@@ -45,11 +45,6 @@ def read_card_counts(text: list[str]) -> dict[str, int]:
             raise ValueError(f"Line {line_number}: count must be positive.")
 
         total = card_counts.get(name, 0) + count
-        if total > 3:
-            raise ValueError(
-                f"Line {line_number}: {name!r} has a total count of {total}; "
-                "the maximum is 3."
-            )
         card_counts[name] = total
 
     return card_counts
